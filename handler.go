@@ -11,6 +11,7 @@ var Handlers = map[string]func([]Value) Value{
 	"PING":    ping,
 	"SET":     set,
 	"GET":     get,
+	"DEL":     deleteKeys,
 	"HSET":    hset,
 	"HGET":    hget,
 	"HGETALL": hgetall,
@@ -64,7 +65,7 @@ func set(args []Value) Value {
 	)
 
 	if len(args) < 2 {
-		return Value{typ: "error", str: "ERR wrong number of arguments for 'set' command"}
+		return ErrorValue("ERR wrong number of arguments for 'set' command")
 	}
 
 	key := args[0].bulk
@@ -86,11 +87,11 @@ func set(args []Value) Value {
 				continue
 			}
 			if len(args) < i+2 {
-				return Value{typ: "error", str: "ERR value required for '" + v + "' option."}
+				return ErrorValue("ERR value required for '" + v + "' option.")
 			}
 			ttl, err := strconv.ParseInt(args[i+1].bulk, 10, 64)
 			if err != nil {
-				return Value{typ: "error", str: "ERR integer required for '" + v + "' option."}
+				return ErrorValue("ERR integer required for '" + v + "' option.")
 			}
 			if exp.cmd == TTL_UTS || exp.cmd == TTL_UTM {
 				exp.value = ttl
@@ -104,7 +105,7 @@ func set(args []Value) Value {
 			i++
 			continue
 		}
-		return Value{typ: "error", str: "ERR invalid option '" + strings.ToUpper(args[i].bulk) + "'."}
+		return ErrorValue("ERR invalid option '" + strings.ToUpper(args[i].bulk) + "'.")
 	}
 
 	SETsMu.Lock()
@@ -112,7 +113,7 @@ func set(args []Value) Value {
 
 	if (setkeyrule == SETKEY_EXISTS && !ok) || (setkeyrule == SETKEY_NOT_EXISTS && ok) {
 		SETsMu.Unlock()
-		return Value{typ: "null"}
+		return NullValue()
 	}
 
 	if exp.cmd == KEEPTTL {
@@ -124,7 +125,7 @@ func set(args []Value) Value {
 
 	if rtv {
 		if !ok {
-			return Value{typ: "null"}
+			return NullValue()
 		}
 		return Value{typ: "bulk", bulk: currv.value}
 	}
@@ -134,7 +135,7 @@ func set(args []Value) Value {
 
 func get(args []Value) Value {
 	if len(args) != 1 {
-		return Value{typ: "error", str: "ERR wrong number of arguments for 'get' command"}
+		return ErrorValue("ERR wrong number of arguments for 'get' command")
 	}
 
 	key := args[0].bulk
@@ -148,10 +149,27 @@ func get(args []Value) Value {
 	SETsMu.Unlock()
 
 	if !ok {
-		return Value{typ: "null"}
+		return NullValue()
 	}
 
 	return Value{typ: "bulk", bulk: value.value}
+}
+
+func deleteKeys(args []Value) Value {
+	if len(args) == 0 {
+		return ErrorValue("ERR wrong number of arguments for 'DEL' command")
+	}
+	numDel := 0
+	SETsMu.Lock()
+	for _, arg := range args {
+		_, ok := SETs[arg.bulk]
+		if ok {
+			numDel++
+			delete(SETs, arg.bulk)
+		}
+	}
+	SETsMu.Unlock()
+	return Value{typ: "integer", num: numDel}
 }
 
 var HSETs = map[string]map[string]KV{}
@@ -159,7 +177,7 @@ var HSETsMu = sync.RWMutex{}
 
 func hset(args []Value) Value {
 	if len(args) != 3 {
-		return Value{typ: "error", str: "ERR wrong number of arguments for 'hset' command"}
+		return ErrorValue("ERR wrong number of arguments for 'hset' command")
 	}
 
 	hash := args[0].bulk
@@ -178,7 +196,7 @@ func hset(args []Value) Value {
 
 func hget(args []Value) Value {
 	if len(args) != 2 {
-		return Value{typ: "error", str: "ERR wrong number of arguments for 'hget' command"}
+		return ErrorValue("ERR wrong number of arguments for 'hget' command")
 	}
 
 	hash := args[0].bulk
@@ -189,7 +207,7 @@ func hget(args []Value) Value {
 	HSETsMu.RUnlock()
 
 	if !ok {
-		return Value{typ: "null"}
+		return NullValue()
 	}
 
 	return Value{typ: "bulk", bulk: value.value}
@@ -197,7 +215,7 @@ func hget(args []Value) Value {
 
 func hgetall(args []Value) Value {
 	if len(args) != 1 {
-		return Value{typ: "error", str: "ERR wrong number of arguments for 'hgetall' command"}
+		return ErrorValue("ERR wrong number of arguments for 'hgetall' command")
 	}
 
 	hash := args[0].bulk
@@ -207,7 +225,7 @@ func hgetall(args []Value) Value {
 	HSETsMu.RUnlock()
 
 	if !ok {
-		return Value{typ: "null"}
+		return NullValue()
 	}
 
 	rt := Value{typ: "array"}
