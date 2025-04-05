@@ -1,4 +1,6 @@
-PHONY: run
+.PHONY: run
+
+GO_FILES := $(shell find . -name '*.go' ! -name '*_test.go')
 
 run:
-	go run *.go
+	go run $(GO_FILES)
