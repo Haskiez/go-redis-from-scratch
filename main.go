@@ -13,23 +13,25 @@ func main() {
 		return
 	}
 
-	aof, err := NewAof("database.aof")
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
-	defer aof.Close()
+	slog.Info("listening on port :6379")
 
-	aof.Read(func(value Value) {
-		command := strings.ToUpper(value.array[0].bulk)
-		args := value.array[1:]
-		handler, ok := Handlers[command]
-		if !ok {
-			slog.Error("invalid command", "error", err)
-			return
-		}
-		handler(args)
-	})
+	// aof, err := NewAof("database.aof")
+	// if err != nil {
+	// 	slog.Error(err.Error())
+	// 	return
+	// }
+	// defer aof.Close()
+
+	// aof.Read(func(value Value) {
+	// 	command := strings.ToUpper(value.array[0].bulk)
+	// 	args := value.array[1:]
+	// 	handler, ok := Handlers[command]
+	// 	if !ok {
+	// 		slog.Error("invalid command", "error", err)
+	// 		return
+	// 	}
+	// 	handler(args)
+	// })
 
 	conn, err := l.Accept()
 	if err != nil {
@@ -38,8 +40,9 @@ func main() {
 	}
 	defer conn.Close()
 
+	resp := NewResp(conn)
+
 	for {
-		resp := NewResp(conn)
 		value, err := resp.Read()
 		if err != nil {
 			slog.Error(err.Error())
@@ -68,9 +71,9 @@ func main() {
 			continue
 		}
 
-		if command == "SET" || command == "HSET" {
-			aof.Write(value)
-		}
+		// if command == "SET" || command == "HSET" {
+		// 	aof.Write(value)
+		// }
 
 		result := handler(args)
 
