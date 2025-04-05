@@ -4,13 +4,13 @@ Initial setup is based off this [article.](https://www.build-redis-from-scratch.
 
 ## Other Commands To Implement
 
-[x] DEL
-[ ] COPY
-[ ] DUMP
-[ ] EXISTS
-[ ] KEYS
-[ ] PERSIST
-[ ] TTL
+- [x] DEL
+- [ ] COPY
+- [ ] DUMP
+- [ ] EXISTS
+- [ ] KEYS
+- [ ] PERSIST
+- [ ] TTL
 
 [Full List Here](https://redis.io/docs/latest/commands/)
 
