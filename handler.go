@@ -18,6 +18,7 @@ var Handlers = map[string]func([]Value) Value{
 	"HSET":    hset,
 	"HGET":    hget,
 	"HGETALL": hgetall,
+	"EXISTS":  exists,
 }
 
 type KV struct {
@@ -298,4 +299,17 @@ func hgetall(args []Value) Value {
 	}
 
 	return rt
+}
+
+// https://redis.io/docs/latest/commands/exists/
+func exists(args []Value) Value {
+	e := 0
+	SETsMu.RLock()
+	for _, arg := range args {
+		_, ok := SETs[arg.bulk]
+		if ok {
+			e++
+		}
+	}
+	return Value{typ: "integer", num: e}
 }
