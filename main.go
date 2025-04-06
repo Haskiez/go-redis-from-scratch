@@ -41,6 +41,7 @@ func main() {
 	defer conn.Close()
 
 	resp := NewResp(conn)
+	writer := NewWriter(conn)
 
 	for {
 		value, err := resp.Read()
@@ -62,12 +63,10 @@ func main() {
 		command := strings.ToUpper(value.array[0].bulk)
 		args := value.array[1:]
 
-		writer := NewWriter(conn)
-
 		handler, ok := Handlers[command]
 		if !ok {
 			slog.Error("invalid command", "cmd", command)
-			writer.Write(Value{typ: "string", str: ""})
+			writer.Write(Value{typ: "error", str: "Command not implemented: '" + command + "'."})
 			continue
 		}
 

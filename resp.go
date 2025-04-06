@@ -145,6 +145,8 @@ func (v Value) Marshal() []byte {
 		return v.marshalBulk()
 	case "array":
 		return v.marshalArray()
+	case "map":
+		return v.marshalMap()
 	case "error":
 		return v.marshalError()
 	case "null":
@@ -194,6 +196,18 @@ func (v Value) marshalArray() []byte {
 	return bytes
 }
 
+func (v Value) marshalMap() []byte {
+	len := len(v.array)
+	var bytes []byte
+	bytes = append(bytes, MAPS)
+	bytes = append(bytes, strconv.Itoa(len/2)...)
+	bytes = append(bytes, '\r', '\n')
+	for i := 0; i < len; i++ {
+		bytes = append(bytes, v.array[i].Marshal()...)
+	}
+	return bytes
+}
+
 func (v Value) marshalError() []byte {
 	var bytes []byte
 	bytes = append(bytes, ERROR)
@@ -203,6 +217,9 @@ func (v Value) marshalError() []byte {
 }
 
 func (v Value) marshalNull() []byte {
+	if respVersion == 3 {
+		return []byte{NULL, '\r', '\n'}
+	}
 	return []byte("$-1\r\n")
 }
 

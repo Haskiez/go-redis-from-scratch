@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/rand"
 	"strconv"
 	"strings"
 	"sync"
@@ -8,6 +9,8 @@ import (
 )
 
 var Handlers = map[string]func([]Value) Value{
+	"HELLO": hello,
+	// "COMMAND": command,
 	"PING":    ping,
 	"SET":     set,
 	"GET":     get,
@@ -27,11 +30,57 @@ type Expiration struct {
 	value int64
 }
 
+var respVersion = 2
+
 var SETs = map[string]KV{}
 var SETsMu = sync.RWMutex{}
 
+func hello(args []Value) Value {
+	typ := "array"
+	if len(args) == 1 && args[0].bulk == "3" {
+		typ = "map"
+		respVersion = 3
+	}
+
+	return Value{typ: typ, array: []Value{
+		{typ: "bulk", bulk: "server"},
+		{typ: "bulk", bulk: "redis-from-scratch"},
+		{typ: "bulk", bulk: "version"},
+		{typ: "bulk", bulk: "2025-04-06.1"},
+		{typ: "bulk", bulk: "proto"},
+		{typ: "integer", num: respVersion},
+		{typ: "bulk", bulk: "id"},
+		{typ: "integer", num: rand.Int()},
+	}}
+}
+
 func ping(args []Value) Value {
 	return Value{typ: "string", str: "PONG"}
+}
+
+func command(args []Value) Value {
+	return Value{typ: "array", array: []Value{
+		{typ: "string", str: "COMMAND"},
+		{typ: "string", str: "https://redis.io/docs/latest/commands/command/"},
+		{typ: "string", str: "HELLO"},
+		{typ: "string", str: "https://redis.io/docs/latest/commands/hello/"},
+		{typ: "string", str: "PING"},
+		{typ: "string", str: "https://redis.io/docs/latest/commands/ping/"},
+		{typ: "string", str: "PING"},
+		{typ: "string", str: "https://redis.io/docs/latest/commands/ping/"},
+		{typ: "string", str: "GET"},
+		{typ: "string", str: "https://redis.io/docs/latest/commands/get/"},
+		{typ: "string", str: "SET"},
+		{typ: "string", str: "https://redis.io/docs/latest/commands/set/"},
+		{typ: "string", str: "DEL"},
+		{typ: "string", str: "https://redis.io/docs/latest/commands/del/"},
+		{typ: "string", str: "HSET"},
+		{typ: "string", str: "https://redis.io/docs/latest/commands/hset/"},
+		{typ: "string", str: "HGET"},
+		{typ: "string", str: "https://redis.io/docs/latest/commands/hget/"},
+		{typ: "string", str: "HGETALL"},
+		{typ: "string", str: "https://redis.io/docs/latest/commands/hgetall/"},
+	}}
 }
 
 /**
@@ -239,6 +288,10 @@ func hgetall(args []Value) Value {
 	}
 
 	rt := Value{typ: "array"}
+
+	if respVersion == 3 {
+		rt.typ = "map"
+	}
 
 	for vk, vv := range values {
 		rt.array = append(rt.array, Value{typ: "bulk", bulk: vk}, Value{typ: "bulk", bulk: vv.value})
