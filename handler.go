@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,6 +20,7 @@ var Handlers = map[string]func([]Value) Value{
 	"HGET":    hget,
 	"HGETALL": hgetall,
 	"EXISTS":  exists,
+	"KEYS":    keys,
 }
 
 type KV struct {
@@ -312,4 +314,26 @@ func exists(args []Value) Value {
 		}
 	}
 	return Value{typ: "integer", num: e}
+}
+
+func keys(args []Value) Value {
+	if len(args) != 1 {
+		return ErrorValue("ERR wrong number of arguments for 'KEYS' command.")
+	}
+
+	re, err := regexp.Compile(args[0].bulk)
+
+	if err != nil {
+		return ErrorValue("Pattern must be a valid regex expression.")
+	}
+
+	rv := Value{typ: "array", array: []Value{}}
+
+	SETsMu.RLock()
+	for k := range SETs {
+		if re.Match([]byte(k)) {
+			rv.array = append(rv.array, Value{typ: "bulk", bulk: k})
+		}
+	}
+	return rv
 }

@@ -7,8 +7,8 @@ Initial setup is based off this [article.](https://www.build-redis-from-scratch.
 - [x] DEL
 - [ ] COPY
 - [ ] DUMP
-- [ ] EXISTS
-- [ ] KEYS
+- [x] EXISTS
+- [x] KEYS
 - [ ] PERSIST
 - [ ] TTL
 
